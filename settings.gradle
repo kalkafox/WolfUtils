@@ -6,6 +6,11 @@ pluginManagement {
         maven {
             url = "https://api.modrinth.com/maven"
         }
+        maven {
+            name = 'ParchmentMC'
+            url = 'https://maven.parchmentmc.org'
+        }
+
         gradlePluginPortal()
     }
 }

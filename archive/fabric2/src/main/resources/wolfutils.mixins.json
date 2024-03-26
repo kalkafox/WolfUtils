@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.kalkafox.wolfutils.fabric.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+  ],
+  "client": [
+    "client.GuiMixinFabric"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
