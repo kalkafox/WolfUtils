@@ -19,7 +19,7 @@ configurations {
 }
 
 dependencies {
-    neoForge "net.neoforged:neoforge:${rootProject.neo_version}"
+    neoForge "net.neoforged:forge:${minecraft_version}-${rootProject.neo_version}"
 
     common(project(path: ":common", configuration: "namedElements")) { transitive false }
     shadowCommon(project(path: ":common", configuration: "transformProductionNeoForge")) { transitive false }

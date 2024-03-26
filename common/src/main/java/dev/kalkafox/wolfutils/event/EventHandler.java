@@ -1,38 +1,31 @@
 package dev.kalkafox.wolfutils.event;
 
-import dev.kalkafox.wolfutils.WolfInteractionData;
 import dev.kalkafox.wolfutils.WolfUtils;
+import dev.kalkafox.wolfutils.mixin.PlayerAccessor;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.block.BedBlock;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.LeavesBlock;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.pathfinder.BlockPathTypes;
-import net.minecraft.world.level.pathfinder.WalkNodeEvaluator;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.slf4j.Logger;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
 
-public class EventHandler {
+public abstract class EventHandler {
 
     private static final Logger log = WolfUtils.getLogger();
-
-    private static final HashMap<Wolf, WolfInteractionData> wolvesInteractingWithPlayers = new HashMap<>();
-
-    public static boolean areWolvesInteracting() {
-        return !wolvesInteractingWithPlayers.isEmpty();
-    }
 
     public static void onSleep(BlockPos pos, LivingEntity entity) {
         if (!(entity instanceof Player) || entity.level().isClientSide) {
@@ -40,7 +33,7 @@ public class EventHandler {
         }
         log.info("Starting sleep at" + pos);
 
-        List<Wolf> wolves = entity.level().getNearbyEntities(Wolf.class, TargetingConditions.DEFAULT, entity, entity.getBoundingBox().inflate(5));
+        List<Wolf> wolves = entity.level().getNearbyEntities(Wolf.class, TargetingConditions.DEFAULT, entity, entity.getBoundingBox().inflate(10));
 
         if (wolves.isEmpty()) {
             return;
@@ -58,111 +51,102 @@ public class EventHandler {
             }
         }
         
-        if (closestWolf == null || closestWolf.getOwner() == null) return;
+        if (closestWolf == null || closestWolf.getOwner() == null || !closestWolf.isInSittingPose()) return;
+
+        Player player = (Player) closestWolf.getOwner();
+
+        if ((entity).getUUID() != player.getUUID()) {
+            return;
+        }
 
         // Save the position and direction of the wolf to be used later
         Vec3 wolfPos = closestWolf.position();
         Vec3 wolfLookPos = closestWolf.getLookAngle();
 
-        wolvesInteractingWithPlayers.put(closestWolf, new WolfInteractionData((Player) entity, wolfPos, wolfLookPos));
+        //WolfUtils.wolvesInteractingWithPlayers.put(closestWolf, new WolfInteractionData((Player) entity, wolfPos, wolfLookPos));
+        WolfInteractionEvent data = new WolfInteractionEvent(player, closestWolf, wolfPos, wolfLookPos);
+
+        WolfUtils.wolvesInteractingWithPlayers.put(player, data);
 
         closestWolf.setIsInterested(true);
 
-        log.info("Mapping has length! " + wolvesInteractingWithPlayers.size());
+        log.info("Mapping has length! " + WolfUtils.wolvesInteractingWithPlayers.size());
 
-    }
-
-    private static double getAngleDegrees(LivingEntity entity, Vec3 wolfPos) {
-        Vec3 wolfToPlayerVec = new Vec3(entity.getX() - wolfPos.x(), entity.getY() - wolfPos.y(), entity.getZ() - wolfPos.z());
-        Vec3 playerLookVec = entity.getLookAngle();
-
-        // Normalize vectors
-        wolfToPlayerVec.normalize();
-        playerLookVec.normalize();
-
-        // Calculate dot product
-        double dotProduct = wolfToPlayerVec.dot(playerLookVec);
-
-        // Calculate angle in radians
-        double angle = Math.acos(dotProduct);
-
-        // Convert angle to degrees
-        return Math.toDegrees(angle);
     }
 
     public static void onStopSleep(LivingEntity entity) {
+
         if (!(entity instanceof Player) || entity.level().isClientSide) {
             return;
         }
 
-        for (Map.Entry<Wolf, WolfInteractionData> entry : wolvesInteractingWithPlayers.entrySet()) {
-            WolfInteractionData data = entry.getValue();
+        //Map.Entry<Wolf, WolfInteractionData> entry = WolfUtils.getInteractionData((Player) entity);
 
-            // Check if the value (Player) matches the livingEntity
-            if (data.getPlayer().is(entity)) {
-                Wolf closestWolf = entry.getKey();
-                // Set closestWolf's interested status to false
-                closestWolf.setIsInterested(false);
+        WolfInteractionEvent data = WolfUtils.getInteractionData((Player) entity);
 
-                closestWolf.getLookControl().setLookAt(data.getWolfLookPos());
-                closestWolf.moveTo(data.getWolfPos());
-                closestWolf.setInSittingPose(true);
-
-                closestWolf.getNavigation().moveTo(data.getWolfPos().x, data.getWolfPos().y, data.getWolfPos().z, 1);
-
-
-                // Remove the mapping from the HashMap
-                WolfUtils.sleepingWolves.remove(closestWolf);
-                wolvesInteractingWithPlayers.remove(closestWolf);
-                break; // Exit loop once the mapping is removed
-            }
+        if (data == null) {
+            return;
         }
+
+        Wolf closestWolf = data.getWolf();
+
+        // Set closestWolf's interested status to false
+        closestWolf.setIsInterested(false);
+
+        closestWolf.getLookControl().setLookAt(data.getWolfLookPos());
+        closestWolf.moveTo(data.getWolfPos());
+
+        closestWolf.setInSittingPose(true);
+
+        closestWolf.getNavigation().moveTo(data.getWolfPos().x, data.getWolfPos().y, data.getWolfPos().z, 1);
+
+
+        // Remove the mapping from the HashMap
+        WolfUtils.sleepingWolves.remove(closestWolf);
+        WolfUtils.wolvesInteractingWithPlayers.remove((Player) entity);
     }
 
     public static void onPreServerLevelTick(ServerLevel serverLevel, BooleanSupplier hasTimeLeft) {
     }
 
     public static void onPostServerLevelTick(ServerLevel serverLevel, BooleanSupplier hasTimeLeft) {
-//        for (Map.Entry<Wolf, Player> entry : wolvesInteractingWithPlayers.entrySet()) {
-//            if (entry.getValue())
-//        }
+
+        if (WolfUtils.wolvesInteractingWithPlayers.isEmpty()) return;
+
+        for (Map.Entry<Player, WolfInteractionEvent> entry : WolfUtils.wolvesInteractingWithPlayers.entrySet()) {
+            WolfInteractionEvent interactEvent = entry.getValue();
+
+            interactEvent.tick();
+        }
     }
 
     public static void onPrePlayerTick(Player player) {
+
     }
 
+    public static void onPrePlayerTick(Player player, int sleepCounter) {
 
-    private static void interactWolf(WolfInteractionData data, Wolf wolfy, Player player) {
+    }
 
-        if (data.getPlayer().is(player)) {
-            if (wolfy.distanceToSqr(player) >= 2) {
-                wolfy.setInSittingPose(false);
-                wolfy.getNavigation().moveTo(player, 1);
-            } else {
-                wolfy.setInSittingPose(true);
+    public static void playWolfStepSound(Wolf wolfy) {
+        float start = 0.7f;
+        float end = 1.3f;
 
-                if (!WolfUtils.sleepingWolves.contains(wolfy)) {
-                    WolfUtils.sleepingWolves.add(wolfy);
-                }
+        float result = start + wolfy.getRandom().nextFloat() * (end - start);
 
-                if (data.interactTicks % wolfy.getRandom().nextInt(50, 100) == 0) {
-                    float pitch = 0.2f + (wolfy.getRandom().nextFloat() * 0.2f);
-                    wolfy.playSound(SoundEvents.WOLF_PANT, 0.5f, pitch);
-                }
-
-                data.interactTicks++;
-            }
-        }
+        wolfy.playSound(SoundEvents.WOLF_STEP, 0.15f, result);
     }
 
 
     public static void onPostPlayerTick(Player player) {
-        for (Map.Entry<Wolf, WolfInteractionData> entry : wolvesInteractingWithPlayers.entrySet()) {
-            Wolf wolfy = entry.getKey();
-            wolfy.getLookControl().setLookAt(player);
-            if (player.getSleepTimer() >= 50) {
-                interactWolf(entry.getValue(), wolfy, player);
-            }
+        WolfInteractionEvent data = WolfUtils.getInteractionData(player);
+
+        if (data == null) {
+            return;
+        }
+
+        if (!data.isInteracting) {
+            ((PlayerAccessor)player).setSleepCounter(0);
         }
     }
 }
