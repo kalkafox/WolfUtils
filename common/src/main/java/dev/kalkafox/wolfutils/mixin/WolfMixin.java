@@ -1,5 +1,6 @@
 package dev.kalkafox.wolfutils.mixin;
 
+import dev.kalkafox.wolfutils.WolfUtils;
 import dev.kalkafox.wolfutils.event.EventHandler;
 import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundEvent;
@@ -36,9 +37,9 @@ public abstract class WolfMixin extends TamableAnimal implements NeutralMob {
 //            }
 //        }
 
-//        if (WolfUtils.sleepingWolves.contains((Wolf)(Object)this)) {
-//            cir.setReturnValue(null);
-//        }
+        if (WolfUtils.sleepingWolves.contains((Wolf)(Object)this)) {
+            cir.setReturnValue(null);
+        }
     }
 
     @Inject(method = "playStepSound", at = @At("HEAD"), cancellable = true)

@@ -26,6 +26,8 @@ subprojects {
         // mappings "net.fabricmc:yarn:@YARN_MAPPINGS@:v2"
 
         compileOnly "org.ladysnake:satin:${satin_version}"
+
+        modImplementation "dev.architectury:architectury:10.1.20"
     }
 }
 
@@ -53,6 +55,36 @@ allprojects {
                 includeGroupByRegex 'dev\\.onyxstudios.*'
             }
         }
+
+        maven {
+            name = "Modrinth"
+            url = "https://api.modrinth.com/maven"
+            content {
+                includeGroup "maven.modrinth"
+            }
+        }
+
+        maven {
+            url = "https://api.modrinth.com/maven"
+        }
+        maven {
+            name = 'ParchmentMC'
+            url = 'https://maven.parchmentmc.org'
+        }
+
+        maven { url "https://maven.terraformersmc.com/releases" }
+
+        maven { url = uri("https://ueaj.dev/maven") }
+
+        maven { url "https://maven.shedaniel.me" }
+
+        maven { url = "https://maven.noxcrew.com/public" }
+
+        maven { url = "https://maven.gegy.dev/" }
+
+        maven { url = "https://maven.quiltmc.org/repository/release" }
+
+        mavenCentral()
     }
 
     tasks.withType(JavaCompile).configureEach {

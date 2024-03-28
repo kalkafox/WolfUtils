@@ -11,9 +11,10 @@
   "license": "All Rights Reserved",
   "icon": "icon.png",
 
-  "environment": "client",
+  "environment": "*",
   "entrypoints": {
-    "main": ["dev.kalkafox.${mod_id}.fabric.WolfUtilsFabric"]
+    "main": ["dev.kalkafox.${mod_id}.fabric.WolfUtilsFabric"],
+    "client": ["dev.kalkafox.${mod_id}.fabric.client.WolfUtilsFabricClient"]
   },
   "mixins": ["wolfutils.mixins.json", "wolfutils-common.mixins.json"],
   "depends": {

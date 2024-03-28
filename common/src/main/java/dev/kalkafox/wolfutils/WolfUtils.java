@@ -2,6 +2,7 @@ package dev.kalkafox.wolfutils;
 
 import com.mojang.logging.LogUtils;
 import dev.kalkafox.wolfutils.event.WolfInteractionEvent;
+import dev.kalkafox.wolfutils.packet.Packets;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.player.Player;
 import org.slf4j.Logger;
@@ -21,11 +22,12 @@ public class WolfUtils
 		return LOGGER;
 	}
 
+	//public static final DeferredRegister<Trigger> ADVANCEMENTS = DeferredRegister.create(MOD_ID, Registries.TRIGGER_TYPE)
+
 	public static void init() {
 
-
-
 		LOGGER.info("We in the game, yo.");
+
 	}
 
 	public static ExecutorService getExecutor() {
@@ -34,7 +36,7 @@ public class WolfUtils
 
 	public static final HashMap<Player, WolfInteractionEvent> wolvesInteractingWithPlayers = new HashMap<>();
 
-	public static WolfInteractionEvent getInteractionData(Player player) {
+	public static WolfInteractionEvent getInteractionEvent(Player player) {
 //		for (Map.Entry<Wolf, WolfInteractionData> entry : wolvesInteractingWithPlayers.entrySet()) {
 //			if (entry.getValue().getPlayer().is(player)) {
 //				return entry;
@@ -46,7 +48,7 @@ public class WolfUtils
     }
 
 	public static boolean areWolvesInteracting() {
-		return !wolvesInteractingWithPlayers.isEmpty();
+		return !wolvesInteractingWithPlayers.isEmpty() && !sleepingWolves.isEmpty();
 	}
 
 	private static final Logger LOGGER = LogUtils.getLogger();

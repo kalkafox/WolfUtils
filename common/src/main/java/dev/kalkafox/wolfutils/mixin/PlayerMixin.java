@@ -1,5 +1,6 @@
 package dev.kalkafox.wolfutils.mixin;
 
+import dev.kalkafox.wolfutils.client.event.ClientEventHandler;
 import dev.kalkafox.wolfutils.event.EventHandler;
 import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
@@ -14,8 +15,13 @@ public class PlayerMixin {
 
     @Inject(method = "tick", at = @At("HEAD"))
     private void onPrePlayerTick(CallbackInfo ci) {
+        Player player = (Player)(Object)this;
 
-        EventHandler.onPrePlayerTick((Player)(Object)this);
+        if (player.level().isClientSide) {
+            ClientEventHandler.onPrePlayerTick(player);
+        } else {
+            EventHandler.onPrePlayerTick(player);
+        }
     }
 
     @Inject(method = "tick", at = @At("TAIL"))

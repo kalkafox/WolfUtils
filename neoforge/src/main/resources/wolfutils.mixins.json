@@ -1,12 +1,12 @@
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "dev.kalkafox.wolfutils",
+  "package": "dev.kalkafox.wolfutils.neoforge.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
   ],
   "client": [
-    "mixin.client.GuiMixinForge"
+    "client.GuiMixin"
   ],
   "injectors": {
     "defaultRequire": 1

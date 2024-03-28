@@ -1,8 +1,8 @@
 package dev.kalkafox.wolfutils.client.event;
 
 import com.mojang.logging.LogUtils;
-import dev.kalkafox.wolfutils.WolfUtils;
-import net.minecraft.client.Minecraft;
+import dev.kalkafox.wolfutils.client.WolfUtilsClient;
+import dev.kalkafox.wolfutils.mixin.PlayerAccessor;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.world.entity.player.Player;
@@ -16,14 +16,20 @@ public class ClientEventHandler {
 
         //LOGGER.info("width: " + width + ", height: " + height + ", sleeptime: " + sleepTime + ", opacity: " + opacity + ", color: " + color);
 
-        Player player = Minecraft.getInstance().player;
+        if (!WolfUtilsClient.postWolfTick) return;
 
-        if (WolfUtils.getInteractionData(player) == null) return;
-
-        color = (int)(255.0f * opacity) << 24 | 0x101010;
+        color = (int) (250.0f * opacity) << 24 | 0x020202; //0x101010;
 
         guiGraphics.fill(RenderType.guiOverlay(), 0, 0, width, height, color);
 
+    }
+
+    public static void onPrePlayerTick(Player player) {
+        //System.out.println("client player tick!");
+
+        if (!WolfUtilsClient.postWolfTick) {
+            ((PlayerAccessor)player).setSleepCounter(0);
+        }
     }
 
 

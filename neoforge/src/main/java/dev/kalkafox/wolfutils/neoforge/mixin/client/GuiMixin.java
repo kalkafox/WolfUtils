@@ -1,18 +1,18 @@
-package dev.kalkafox.wolfutils.forge.mixin.client;
+package dev.kalkafox.wolfutils.neoforge.mixin.client;
 
 import dev.kalkafox.wolfutils.client.event.ClientEventHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.entity.ItemRenderer;
-import net.minecraftforge.client.gui.overlay.ForgeGui;
+import net.neoforged.neoforge.client.gui.overlay.ExtendedGui;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
-@Mixin(ForgeGui.class)
+@Mixin(ExtendedGui.class)
 public abstract class GuiMixin extends Gui {
 
     public GuiMixin(Minecraft minecraft, ItemRenderer itemRenderer) {

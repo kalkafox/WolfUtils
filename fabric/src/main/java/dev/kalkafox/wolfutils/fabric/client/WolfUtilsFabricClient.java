@@ -7,6 +7,7 @@ public class WolfUtilsFabricClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        System.out.println("hi");
         WolfUtilsClient.clientInit();
     }
 }
