@@ -1,6 +1,5 @@
 package dev.kalkafox.wolfutils.sound;
 
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.SoundType;

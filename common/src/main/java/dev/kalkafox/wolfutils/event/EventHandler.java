@@ -1,14 +1,18 @@
 package dev.kalkafox.wolfutils.event;
 
+import dev.architectury.networking.NetworkManager;
 import dev.kalkafox.wolfutils.WolfUtils;
 import dev.kalkafox.wolfutils.mixin.PlayerAccessor;
+import dev.kalkafox.wolfutils.packet.Packets;
 import dev.kalkafox.wolfutils.sound.EntityStepContext;
 import dev.kalkafox.wolfutils.sound.WolfStepContext;
+import io.netty.buffer.Unpooled;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.targeting.TargetingConditions;
@@ -25,15 +29,14 @@ public abstract class EventHandler {
     private static final Logger log = WolfUtils.getLogger();
 
     public static void onSleep(BlockPos pos, LivingEntity entity) {
-        System.out.println("yo");
         if (!(entity instanceof Player) || entity.level().isClientSide) {
             return;
         }
-        log.info("Starting sleep at" + pos);
 
         List<Wolf> wolves = entity.level().getNearbyEntities(Wolf.class, TargetingConditions.DEFAULT, entity, entity.getBoundingBox().inflate(10));
 
         if (wolves.isEmpty()) {
+            log.error("Could not find any wolves nearby.");
             return;
         }
 
@@ -48,17 +51,31 @@ public abstract class EventHandler {
                 closestWolf = wolf;
             }
         }
-        
-        if (closestWolf == null || closestWolf.getOwner() == null || !closestWolf.isInSittingPose()) return;
+
+        if (closestWolf == null) {
+            log.error("closestWolf is null");
+            return;
+        }
+
+        if (closestWolf.getOwner() == null) {
+            log.error("owner is null");
+            return;
+        }
+
+        if (!closestWolf.isInSittingPose()) {
+            log.error("wolf not in sitting pose");
+        }
 
         Player player = (Player) closestWolf.getOwner();
 
         if (entity.getUUID() != player.getUUID()) {
+            log.error("Sleeping player and wolf owner UUID does not exist!");
             return;
         }
 
         //WolfUtils.wolvesInteractingWithPlayers.put(closestWolf, new WolfInteractionData((Player) entity, wolfPos, wolfLookPos));
         new WolfInteractionEvent(player, closestWolf);
+
     }
 
     public static void onStopSleep(LivingEntity entity) {
@@ -72,12 +89,17 @@ public abstract class EventHandler {
         WolfInteractionEvent wolfInteractionEvent = WolfUtils.getInteractionEvent((Player) entity);
 
         if (wolfInteractionEvent == null) {
+            log.error("WolfInteractionEvent for {} not found.", entity.getDisplayName().getString());
             return;
         }
 
         if (wolfInteractionEvent.finished) {
             ((Player)entity).displayClientMessage(Component.translatable("text.wolfutils.after_sleep").withStyle(ChatFormatting.ITALIC), true);
         }
+
+        wolfInteractionEvent.updateClientWolfState(false);
+
+        wolfInteractionEvent.shouldModifySleepFade(false);
 
         wolfInteractionEvent.stop();
     }
@@ -86,6 +108,9 @@ public abstract class EventHandler {
     }
 
     public static void onPostServerLevelTick(ServerLevel serverLevel, BooleanSupplier hasTimeLeft) {
+
+        WolfUtils.getWolfInteractionEvents().forEach(WolfInteractionEvent::tick);
+
     }
 
     public static void onPrePlayerTick(Player player) {
@@ -120,17 +145,30 @@ public abstract class EventHandler {
 
 
     public static void onPostPlayerTick(Player player) {
-        if (player.level().isClientSide) return;
+//        if (player.level().isClientSide) return;
+//
+//
+//        if (!player.isSleeping()) return;
+//
+//        WolfInteractionEvent data = WolfUtils.getInteractionEvent(player);
+//
+//        if (data == null) {
+//            return;
+//        }
+//
+//        data.tick();
+    }
 
 
-        if (!player.isSleeping()) return;
+    public static void onUpdateClientWolfState(ServerPlayer player, boolean state) {
+        FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
+        buf.writeBoolean(state);
+        NetworkManager.sendToPlayer(player, Packets.UPDATE_WOLF_STATE, buf);
+    }
 
-        WolfInteractionEvent data = WolfUtils.getInteractionEvent(player);
-
-        if (data == null) {
-            return;
-        }
-
-        data.tick();
+    public static void onShouldModifySleepFade(ServerPlayer player, boolean state) {
+        FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
+        buf.writeBoolean(state);
+        NetworkManager.sendToPlayer(player, Packets.MODIFY_SLEEP_FADE, buf);
     }
 }

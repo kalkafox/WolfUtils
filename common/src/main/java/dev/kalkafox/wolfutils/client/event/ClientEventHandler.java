@@ -7,27 +7,32 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.world.entity.player.Player;
 import org.slf4j.Logger;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-public class ClientEventHandler {
+public final class ClientEventHandler {
 
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    public static void onSleepFade(GuiGraphics guiGraphics, int width, int height, int sleepTime, float opacity, int color) {
+    public static void onSleepFade(GuiGraphics guiGraphics, int width, int height, int sleepTime, float opacity, int color, CallbackInfo ci) {
 
         //LOGGER.info("width: " + width + ", height: " + height + ", sleeptime: " + sleepTime + ", opacity: " + opacity + ", color: " + color);
 
         if (!WolfUtilsClient.postWolfTick) return;
 
-        color = (int) (250.0f * opacity) << 24 | 0x020202; //0x101010;
+        if (WolfUtilsClient.shouldModifySleepFade) {
+            ci.cancel();
 
-        guiGraphics.fill(RenderType.guiOverlay(), 0, 0, width, height, color);
+            color = (int) (250.0f * opacity) << 24 | 0x050505; //0x101010;
+
+            guiGraphics.fill(RenderType.guiOverlay(), 0, 0, width, height, color);
+        }
 
     }
 
     public static void onPrePlayerTick(Player player) {
         //System.out.println("client player tick!");
 
-        if (!WolfUtilsClient.postWolfTick) {
+        if (!WolfUtilsClient.postWolfTick && WolfUtilsClient.shouldModifySleepFade) {
             ((PlayerAccessor)player).setSleepCounter(0);
         }
     }

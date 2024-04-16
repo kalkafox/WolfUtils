@@ -1,20 +1,26 @@
 package dev.kalkafox.wolfutils;
 
+import com.google.common.base.Suppliers;
 import com.mojang.logging.LogUtils;
+import dev.architectury.registry.registries.RegistrarManager;
 import dev.kalkafox.wolfutils.event.WolfInteractionEvent;
-import dev.kalkafox.wolfutils.packet.Packets;
+import dev.kalkafox.wolfutils.sound.Sounds;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.player.Player;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Supplier;
 
 public class WolfUtils
 {
 	public static final String MOD_ID = "wolfutils";
+
+	public static final Supplier<RegistrarManager> MANAGER = Suppliers.memoize(() -> RegistrarManager.get(MOD_ID));
 
 	public static final ArrayList<Wolf> sleepingWolves = new ArrayList<>();
 
@@ -27,6 +33,8 @@ public class WolfUtils
 	public static void init() {
 
 		LOGGER.info("We in the game, yo.");
+
+		Sounds.register();
 
 	}
 
@@ -46,6 +54,10 @@ public class WolfUtils
 
 		return wolvesInteractingWithPlayers.get(player);
     }
+
+	public static Collection<WolfInteractionEvent> getWolfInteractionEvents() {
+		return wolvesInteractingWithPlayers.values();
+	}
 
 	public static boolean areWolvesInteracting() {
 		return !wolvesInteractingWithPlayers.isEmpty() && !sleepingWolves.isEmpty();

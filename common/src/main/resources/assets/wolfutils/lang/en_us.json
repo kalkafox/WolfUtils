@@ -1,3 +1,6 @@
 {
-  "text.wolfutils.after_sleep": "Somehow, you feel closer to your best friend..."
+  "text.wolfutils.after_sleep": "Somehow, you feel closer to your best friend...",
+  "subtitles.wolfutils.wolf_jingle": "Wolf collar jingles",
+  "commands.discard.success.multiple": "Discarded %s entities",
+  "commands.discard.success.single": "Discarded %s"
 }

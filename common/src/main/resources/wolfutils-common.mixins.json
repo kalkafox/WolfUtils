@@ -4,7 +4,10 @@
   "package": "dev.kalkafox.wolfutils.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
+    "BoatMixin",
     "EntityMixin",
+    "KillCommandMixin",
+    "LeashFenceKnotEntityMixin",
     "LivingEntityMixin",
     "PlayerAccessor",
     "PlayerMixin",
@@ -13,6 +16,8 @@
     "WolfMixin"
   ],
   "client": [
+    "MobRendererInvoker",
+    "client.MobRendererMixin"
   ],
   "injectors": {
     "maxShiftBy": 5,

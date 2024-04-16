@@ -1,19 +1,16 @@
 package dev.kalkafox.wolfutils.event;
 
 import com.mojang.logging.LogUtils;
-import dev.architectury.networking.NetworkManager;
 import dev.kalkafox.wolfutils.WolfUtils;
-import dev.kalkafox.wolfutils.mixin.PlayerAccessor;
-import dev.kalkafox.wolfutils.packet.Packets;
-import io.netty.buffer.Unpooled;
+import dev.kalkafox.wolfutils.sound.Sounds;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 
@@ -27,6 +24,7 @@ public class WolfInteractionEvent {
     private int postInteractTicks;
 
     private int ambientSoundTime;
+    private int jingleSoundTime;
 
     private boolean isInteracting;
     private static final Logger log = LogUtils.getLogger();
@@ -35,7 +33,6 @@ public class WolfInteractionEvent {
 
 
     public WolfInteractionEvent(Player player, Wolf wolfy) {
-        log.debug("Initialized " + this + " in memory location " + Integer.toHexString(hashCode()));
 
         this.player = player;
         this.wolfy = wolfy;
@@ -50,9 +47,7 @@ public class WolfInteractionEvent {
 
         wolfy.setIsInterested(true);
 
-        log.info("Mapping has length! " + WolfUtils.wolvesInteractingWithPlayers.size());
-
-
+        shouldModifySleepFade(true);
 
         maybeTeleportWolf();
     }
@@ -71,7 +66,9 @@ public class WolfInteractionEvent {
     
     public void stop() {
 
-        wolfy.playSound(SoundEvents.WOLF_WHINE, 0.5f, 0.5f);
+        if (finished) {
+            wolfy.playSound(SoundEvents.WOLF_WHINE, 0.5f, 0.5f);
+        }
         
 
         // Set wolfy's interested status to false
@@ -86,9 +83,15 @@ public class WolfInteractionEvent {
 
         wolfy.hasImpulse = false;
 
-        updateClientWolfState(false);
-
         removeMapping();
+    }
+
+    public void updateClientWolfState(boolean state) {
+        EventHandler.onUpdateClientWolfState((ServerPlayer) player, state);
+    }
+
+    public void shouldModifySleepFade(boolean state) {
+        EventHandler.onShouldModifySleepFade((ServerPlayer) player, state);
     }
 
     public Wolf getWolf() { return wolfy; }
@@ -110,7 +113,6 @@ public class WolfInteractionEvent {
         // Remove the mapping from the HashMap
         WolfUtils.sleepingWolves.remove(wolfy);
         WolfUtils.wolvesInteractingWithPlayers.remove(getPlayer());
-        log.info("Mapping has length! " + WolfUtils.wolvesInteractingWithPlayers.size());
     }
 
 
@@ -138,13 +140,13 @@ public class WolfInteractionEvent {
 
             if (!isInteracting) {
                 updateClientWolfState(true);
+
+                wolfy.setInSittingPose(true);
+
+                wolfy.hasImpulse = true;
             }
 
             isInteracting = true;
-
-            wolfy.setInSittingPose(true);
-
-            wolfy.hasImpulse = true;
 
             postInteractTicks++;
 
@@ -158,6 +160,16 @@ public class WolfInteractionEvent {
                 //wolfy.level().playSound(wolfy, wolfy.blockPosition(), SoundEvents.WOLF_PANT, SoundSource.NEUTRAL, 0.5f, 0.1f);
                 ambientSoundTime -= wolfy.getAmbientSoundInterval();
             }
+
+            if (wolfy.getRandom().nextInt(500) < jingleSoundTime++) {
+                float pitchStart = 0.8f;
+                float pitchEnd = 1.2f;
+
+                float pitchResult = pitchStart + wolfy.getRandom().nextFloat() * (pitchEnd - pitchStart);
+
+                wolfy.playSound(Sounds.WOLF_JINGLE.get(), 0.2f, pitchResult);
+                jingleSoundTime -= wolfy.getAmbientSoundInterval();
+            }
         }
     }
 
@@ -168,19 +180,32 @@ public class WolfInteractionEvent {
             return;
         }
 
-        int offsetX = 0;
-        int offsetZ = 0;
+        BlockPos pos = player.blockPosition();
 
-        int toOffset = wolfy.getRandom().nextInt(7) - 3;
+        boolean isSuitable = true;
 
-        switch (dir) {
-            case EAST, WEST:
-                offsetX = toOffset;
-            case NORTH, SOUTH:
-                offsetZ = toOffset;
+        Level level = player.level();
+
+        BlockPos chosenPos = null;
+
+        for (int i = 2; i < 5; i++) {
+            if (!level.getBlockState(pos.relative(dir, -i)).isAir()) {
+                isSuitable = false;
+                break;
+            }
+            chosenPos = pos.relative(dir, -i);
         }
 
-        wolfy.moveTo(player.getX()-dir.getStepX()+offsetX, player.getY(), player.getZ()-dir.getStepZ()+offsetZ);
+        if (!isSuitable) {
+            log.error("Could not find suitable location to place wolf, discarding sleep event");
+            updateClientWolfState(false);
+            shouldModifySleepFade(false);
+
+            stop();
+            return;
+        }
+
+        wolfy.moveTo(chosenPos.getX(), chosenPos.getY(), chosenPos.getZ());
     }
 
     private void maybeTeleportWolf() {
@@ -198,7 +223,7 @@ public class WolfInteractionEvent {
 
             if (dir == null) return;
 
-            Vec3 lookVec = Vec3.atLowerCornerOf(player.getBedOrientation().getNormal());
+            Vec3 lookVec = Vec3.atLowerCornerOf(dir.getNormal());
 
 
             Vec3 wolfVec = wolfy.position().subtract(player.position()).normalize();
@@ -210,13 +235,9 @@ public class WolfInteractionEvent {
             if (angle <= 120) {
                 teleportWolf();
             }
-        }
-    }
 
-    private void updateClientWolfState(boolean state) {
-        FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
-        buf.writeBoolean(state);
-        NetworkManager.sendToPlayer((ServerPlayer)player, Packets.UPDATE_WOLF_STATE, buf);
+            //shouldModifySleepFade(true);
+        }
     }
 
     public boolean isInteracting() {

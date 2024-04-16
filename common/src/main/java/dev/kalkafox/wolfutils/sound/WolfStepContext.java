@@ -18,7 +18,12 @@ public abstract class WolfStepContext {
 
         wolfy.playSound(SoundEvents.WOLF_STEP, volumeResult, pitchResult);
 
-        wolfy.playSound(wolfy.getFeetBlockState().getSoundType().getStepSound(), volumeResult-(volumeResult/2), pitchResult);
+        if (!wolfy.isTame()) {
+            return;
+        }
+
+        wolfy.playSound(Sounds.WOLF_JINGLE.get(), 0.008f, pitchResult);
+        wolfy.playSound(wolfy.getBlockStateOn().getSoundType().getStepSound(), volumeResult-(volumeResult/2), pitchResult);
 
     }
 

@@ -21,13 +21,11 @@ public class GuiMixinFabric {
     @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;fill(Lnet/minecraft/client/renderer/RenderType;IIIII)V"), locals = LocalCapture.CAPTURE_FAILHARD, cancellable = true)
     private void onRender(GuiGraphics guiGraphics, float partialTick, CallbackInfo ci, Window window, Font font, float f, float h, float j, int k) {
         //System.out.println(k);
-        ci.cancel();
 
         //k = (int)(255.0f * j) << 24 | 0x101010;
         //System.out.println(j);
 
-
-        ClientEventHandler.onSleepFade(guiGraphics, screenWidth, screenHeight, (int) h, j, k);
+        ClientEventHandler.onSleepFade(guiGraphics, screenWidth, screenHeight, (int) h, j, k, ci);
     }
 
 }

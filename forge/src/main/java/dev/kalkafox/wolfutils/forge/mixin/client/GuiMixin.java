@@ -21,8 +21,7 @@ public abstract class GuiMixin extends Gui {
 
     @Inject(method = "renderSleepFade", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;fill(Lnet/minecraft/client/renderer/RenderType;IIIII)V"), locals = LocalCapture.CAPTURE_FAILHARD, cancellable = true)
     private void doRenderSleepFade(int width, int height, GuiGraphics guiGraphics, CallbackInfo ci, int sleepTime, float opacity, int color) {
-        ci.cancel();
-        ClientEventHandler.onSleepFade(guiGraphics, width, height, sleepTime, opacity, color);
+        ClientEventHandler.onSleepFade(guiGraphics, width, height, sleepTime, opacity, color, ci);
     }
 
 }

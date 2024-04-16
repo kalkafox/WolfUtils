@@ -1,0 +1,10 @@
+{
+  "entity.wolf.jingle": {
+    "subtitle": "subtitles.wolfutils.wolf_jingle",
+    "sounds": [
+      "wolfutils:wolf_jingle_1",
+      "wolfutils:wolf_jingle_2",
+      "wolfutils:wolf_jingle_3"
+    ]
+  }
+}
